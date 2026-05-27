@@ -85,7 +85,7 @@ flowchart TB
     Check -->|斷網| Offline[導師 PWA<br/>離線點選]
     Offline --> QR[產生 QR Code<br/>含結構化資料]
     QR --> Scanner[巡掃員逐班掃描]
-    Scanner --> LocalServer[校長端 PWA<br/>本地彙整]
+    Scanner --> LocalServer[巡掃員彙整]
     LocalServer --> Dashboard
     
     Dashboard[指揮中心儀表板<br/>綠/紅/灰即時狀態]
@@ -206,16 +206,7 @@ AI Agent 介入於元件 C，採「**協助而非決策**」原則。
 
 ---
 
-## 九、團隊
-
-**Brickworks**（一人團隊）
-
-- Roy｜國小教師 / 環衛組長視角觀察者 / 全端實作
-- 場景觀察基地：新竹市觀埔國小（62 班、約 1,845 名學生）
-
----
-
-## 十、授權
+## 九、授權
 
 本專案採 [MIT License](LICENSE) 授權。
 
