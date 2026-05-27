@@ -38,13 +38,105 @@
 ---
 
 ## 三、元件架構
-[A. 學生資料快取] → [B. 班級點名回報] → [C. 紅單情報整合 + AI Agent] → [D. 指揮中心儀表板]
+
+### 整體資料流
+
+```mermaid
+flowchart LR
+    A[A. 學生資料快取<br/>Pre-cache]
+    B[B. 班級點名回報<br/>Reporting]
+    C[C. 紅單情報整合<br/>+ AI Agent]
+    D[D. 指揮中心儀表板<br/>Dashboard]
+    E[縣市教育系統<br/>External API]
+
+    A -.提供本地資料.-> B
+    A -.提供本地資料.-> C
+    B -->|回報 JSON| C
+    B -->|回報 JSON| D
+    C -->|情報包 JSON| D
+    D -->|標準化 JSON| E
+
+    style A fill:#e1f5ff,stroke:#0288d1
+    style B fill:#fff3e0,stroke:#f57c00
+    style C fill:#f3e5f5,stroke:#7b1fa2
+    style D fill:#e8f5e9,stroke:#388e3c
+    style E fill:#fafafa,stroke:#616161
+```
+
+### 元件對應使用者
+
 | 元件 | 功能 | 主要使用者 |
 |---|---|---|
 | A | 災前將學生資料快取至本地 IndexedDB | 資訊組 |
 | B | PWA 大畫面點選未到座號，連線/QR Code 雙模式 | 各班導師 |
 | C | 自動帶出學生資料，AI Agent 多步驟搜尋協助 | 救難組 |
 | D | 即時三色儀表板、自動統計、自動消單 | 教務主任/校長 |
+
+### 雙模式運作（連線 / 斷網）
+
+```mermaid
+flowchart TB
+    Start([警報響起<br/>各班疏散至避難區]) --> Check{網路狀態?}
+    
+    Check -->|有網路| Online[導師 PWA<br/>點選未到座號]
+    Online --> CloudSync[即時上傳至<br/>校級伺服器]
+    CloudSync --> Dashboard
+    
+    Check -->|斷網| Offline[導師 PWA<br/>離線點選]
+    Offline --> QR[產生 QR Code<br/>含結構化資料]
+    QR --> Scanner[巡掃員逐班掃描]
+    Scanner --> LocalServer[校長端 PWA<br/>本地彙整]
+    LocalServer --> Dashboard
+    
+    Dashboard[指揮中心儀表板<br/>綠/紅/灰即時狀態]
+    Dashboard --> RedFlag{有紅單?}
+    
+    RedFlag -->|是| Agent[AI Agent<br/>多步驟搜尋協助]
+    Agent --> Rescue[救難組執行<br/>並回報結果]
+    Rescue --> AutoUpdate[Agent 動態更新<br/>消單或升級警示]
+    AutoUpdate --> Dashboard
+    
+    RedFlag -->|否| Complete([全校 OK<br/>輸出標準化 JSON])
+    AutoUpdate -.全部結案.-> Complete
+
+    style Start fill:#ffebee,stroke:#c62828
+    style Complete fill:#e8f5e9,stroke:#2e7d32
+    style Agent fill:#f3e5f5,stroke:#7b1fa2
+    style Dashboard fill:#fff3e0,stroke:#f57c00
+```
+
+### AI Agent 多步驟流程
+
+```mermaid
+sequenceDiagram
+    participant T as 班級導師
+    participant B as 元件 B 回報模組
+    participant C as 元件 C 整合 + Agent
+    participant R as 救難組
+    participant D as 元件 D 儀表板
+
+    T->>B: 點選「未到第 5 號」
+    B->>C: 紅單 JSON（班級、座號）
+    
+    Note over C: Step 1: 本地快取查詢
+    C->>C: 取得王小明、家長電話
+    
+    Note over C: Step 2: 出缺勤模式分析
+    C->>C: 過去 30 天遲到 12 次
+    
+    Note over C: Step 3: 產出搜尋簡報
+    C->>R: 情報包 + 動作清單
+    
+    R->>R: 撥打家長電話
+    R->>C: 回報結果「家長已接，塞車中」
+    
+    Note over C: Step 5: 動態判讀
+    C->>D: 建議消單（標記為遲到）
+    
+    D->>D: 人為確認後消單
+    D->>T: 通知班級狀態更新
+
+```
 
 ---
 
